@@ -6,6 +6,22 @@ const ConnectionRequest = require("../models/connectionRequest");
 const User = require("../models/user");
 
 const USER_SAFE_DATA = "firstName lastName photoUrl age gender about skills";
+// In your backend 'routes/user.js'
+
+userRouter.get("/user/requests/sent", userAuth, async (req, res) => {
+  try {
+    const sentRequests = await ConnectionRequest.find({
+      fromUserId: req.user._id,
+      status: "interested",
+    }).populate("toUserId", "firstName lastName photoUrl about skills");
+
+    // Map to user objects
+    const users = sentRequests.map((r) => r.toUserId);
+    res.json({ data: users });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
 
 // Get all the pending connection request for the loggedIn user
 userRouter.get("/user/requests/received", userAuth, async (req, res) => {
