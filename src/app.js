@@ -3,6 +3,7 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const http = require("http");
 const mongoose = require("mongoose");
+const path = require("path");
 require("dotenv").config();
 
 const connectDB = require("./config/database");
@@ -13,13 +14,15 @@ const profileRouter = require("./routes/profile");
 const requestRouter = require("./routes/request");
 const userRouter = require("./routes/user");
 const chatRouter = require("./routes/chat");
-// const paymentRouter = require("./routes/payment");
-
-require("./utils/cronjob");
 
 const app = express();
 
-// Middleware
+// ✅ Serve Uploaded Profile Pictures
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+require("./utils/cronjob");
+
+// ✅ Middleware
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -29,19 +32,18 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
-// Routes
+// ✅ Routes
 app.use("/", authRouter);
-app.use("/", profileRouter);
+app.use("/profile", profileRouter);
 app.use("/", requestRouter);
 app.use("/", userRouter);
 app.use("/", chatRouter);
-// app.use("/", paymentRouter);
 
-// Socket Server
+// ✅ Initialize Socket
 const server = http.createServer(app);
 initializeSocket(server);
 
-// Database Connection and Server Start
+// ✅ Connect to DB and Start Server
 connectDB()
   .then(() => {
     console.log("✅ Database connection established...");

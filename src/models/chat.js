@@ -22,6 +22,7 @@ const chatSchema = new mongoose.Schema({
   messages: [messageSchema],
 });
 
-const Chat = mongoose.model("Chat", chatSchema);
+// ✅ Fix for OverwriteModelError
+const Chat = mongoose.models.Chat || mongoose.model("Chat", chatSchema);
 
 module.exports = { Chat };

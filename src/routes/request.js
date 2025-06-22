@@ -86,6 +86,26 @@ profileRouter.patch("/request/accept/:fromUserId", userAuth, async (req, res) =>
 });
 
 
+// DELETE: Cancel a sent request
+profileRouter.delete("/request/delete/:toUserId", userAuth, async (req, res) => {
+  try {
+    const request = await ConnectionRequest.findOneAndDelete({
+      fromUserId: req.user._id,
+      toUserId: req.params.toUserId,
+      status: "interested",
+    });
+
+    if (!request) {
+      return res.status(404).json({ message: "Request not found or already deleted." });
+    }
+
+    res.json({ message: "Request deleted successfully." });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+
 
 
 module.exports = profileRouter; // ✅ Correct export

@@ -1,16 +1,7 @@
-const socket = require("socket.io");
-const crypto = require("crypto");
-const { Chat } = require("../models/chat");
-
-const getSecretRoomId = (userId, targetUserId) => {
-  return crypto
-    .createHash("sha256")
-    .update([userId, targetUserId].sort().join("$"))
-    .digest("hex");
-};
+const { Server } = require("socket.io");
 
 const initializeSocket = (server) => {
-  const io = socket(server, {
+  const io = new Server(server, {
     cors: {
       origin: "http://localhost:5173",
       credentials: true,
@@ -18,50 +9,18 @@ const initializeSocket = (server) => {
   });
 
   io.on("connection", (socket) => {
-    console.log("🔌 Client connected:", socket.id);
+    console.log("✅ Client connected:", socket.id);
 
-    socket.on("joinChat", ({ userId, targetUserId }) => {
-      if (!userId || !targetUserId) {
-        console.warn("❗ Missing userId or targetUserId in joinChat event.");
-        return;
-      }
-
-      const roomId = getSecretRoomId(userId, targetUserId);
-      socket.join(roomId);
-      console.log(`✅ User ${userId} joined Room: ${roomId}`);
+    socket.on("joinChat", ({ userId, targetUserId, firstName }) => {
+      const room = [userId, targetUserId].sort().join("_");
+      socket.join(room);
+      console.log(`📥 ${firstName} joined room ${room}`);
     });
 
-    socket.on("sendMessage", async ({ firstName, lastName, userId, targetUserId, text }) => {
-      if (!userId || !targetUserId || !text) {
-        console.warn("❗ Incomplete message data received.");
-        return;
-      }
-
-      const roomId = getSecretRoomId(userId, targetUserId);
-
-      let chat = await Chat.findOne({
-        participants: { $all: [userId, targetUserId] },
-      });
-
-      if (!chat) {
-        chat = new Chat({ participants: [userId, targetUserId], messages: [] });
-      }
-
-      const newMessage = {
-        senderId: userId,
-        text,
-      };
-
-      chat.messages.push(newMessage);
-      await chat.save();
-
-      io.to(roomId).emit("messageReceived", {
-        firstName,
-        lastName,
-        senderId: userId,
-        text,
-        timestamp: new Date(),
-      });
+    socket.on("sendMessage", (msg) => {
+      const room = [msg.userId, msg.targetUserId].sort().join("_");
+      socket.to(room).emit("messageReceived", msg);
+      console.log("📤 Message sent to room:", room, msg);
     });
 
     socket.on("disconnect", () => {
@@ -70,4 +29,5 @@ const initializeSocket = (server) => {
   });
 };
 
+// ✅ Make sure this is how you export it
 module.exports = initializeSocket;

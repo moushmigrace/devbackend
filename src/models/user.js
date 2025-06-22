@@ -45,11 +45,6 @@ const userSchema = new mongoose.Schema(
         values: ["male", "female", "other"],
         message: `{VALUE} is not a valid gender type`,
       },
-      // validate(value) {
-      //   if (!["male", "female", "others"].includes(value)) {
-      //     throw new Error("Gender data is not valid");
-      //   }
-      // },
     },
     isPremium: {
       type: Boolean,
@@ -61,11 +56,7 @@ const userSchema = new mongoose.Schema(
     photoUrl: {
       type: String,
       default: "https://geographyandyou.com/images/user-profile.png",
-      validate(value) {
-        if (!validator.isURL(value)) {
-          throw new Error("Invalid Photo URL: " + value);
-        }
-      },
+      
     },
     about: {
       type: String,
@@ -73,6 +64,12 @@ const userSchema = new mongoose.Schema(
     },
     skills: {
       type: [String],
+      default: [],
+    },
+    projectsCount: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
   },
   {
@@ -80,6 +77,7 @@ const userSchema = new mongoose.Schema(
   }
 );
 
+// Generate JWT token
 userSchema.methods.getJWT = async function () {
   const user = this;
 
@@ -90,6 +88,7 @@ userSchema.methods.getJWT = async function () {
   return token;
 };
 
+// Validate user-entered password against hashed one
 userSchema.methods.validatePassword = async function (passwordInputByUser) {
   const user = this;
   const passwordHash = user.password;
