@@ -24,22 +24,55 @@ userRouter.get("/user/requests/sent", userAuth, async (req, res) => {
 });
 
 // Get all the pending connection request for the loggedIn user
+// Get all incoming requests (to current user)
 userRouter.get("/user/requests/received", userAuth, async (req, res) => {
   try {
-    const loggedInUser = req.user;
-
-    const connectionRequests = await ConnectionRequest.find({
-      toUserId: loggedInUser._id,
+    const requests = await ConnectionRequest.find({
+      toUserId: req.user._id,
       status: "interested",
-    }).populate("fromUserId", USER_SAFE_DATA);
-    // }).populate("fromUserId", ["firstName", "lastName"]);
+    }).populate("fromUserId", "firstName lastName photoUrl about skills");
 
-    res.json({
-      message: "Data fetched successfully",
-      data: connectionRequests,
-    });
+    const users = requests.map(r => r.fromUserId);
+    res.json({ data: users });
   } catch (err) {
-    req.statusCode(400).send("ERROR: " + err.message);
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// GET all accepted devfriends for current user
+userRouter.get("/user/devfriends", userAuth, async (req, res) => {
+  const userId = req.user._id;
+
+  try {
+    const acceptedRequests = await ConnectionRequest.find({
+      $or: [
+        { fromUserId: userId },
+        { toUserId: userId }
+      ],
+      status: "accepted"
+    }).populate("fromUserId toUserId", "firstName lastName photoUrl about skills");
+
+    // Extract the "other" user
+    const devfriends = acceptedRequests.map((req) =>
+      req.fromUserId._id.toString() === userId.toString()
+        ? req.toUserId
+        : req.fromUserId
+    );
+
+    res.json({ data: devfriends });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch devfriends" });
+  }
+});
+
+// src/routes/user.js or profile.js
+userRouter.get("/user/profile/:userId", userAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId).select("firstName lastName email photoUrl");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json({ data: user });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
   }
 });
 
