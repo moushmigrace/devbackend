@@ -2,6 +2,7 @@ const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const http = require("http");
+const mongoose = require("mongoose");
 require("dotenv").config();
 
 const connectDB = require("./config/database");

@@ -1,31 +1,32 @@
 const express = require("express");
-const { userAuth } = require("../middlewares/auth");
+const router = express.Router();
 const { Chat } = require("../models/chat");
+const { userAuth } = require("../middlewares/auth"); // Make sure path is correct
 
-const chatRouter = express.Router();
-
-chatRouter.get("/chat/:targetUserId", userAuth, async (req, res) => {
-  const { targetUserId } = req.params;
-  const userId = req.user._id;
+// GET chat between logged-in user and target user
+router.get("/chat/:targetUserId", userAuth, async (req, res) => {
+  const currentUserId = req.user._id.toString();
+  const targetUserId = req.params.targetUserId;
 
   try {
+    // Check for existing chat
     let chat = await Chat.findOne({
-      participants: { $all: [userId, targetUserId] },
-    }).populate({
-      path: "messages.senderId",
-      select: "firstName lastName",
-    });
+      participants: { $all: [currentUserId, targetUserId] },
+    }).populate("participants", "firstName lastName emailId photoUrl");
+
+    // If chat doesn't exist, create it
     if (!chat) {
-      chat = new Chat({
-        participants: [userId, targetUserId],
+      chat = await Chat.create({
+        participants: [currentUserId, targetUserId],
         messages: [],
       });
-      await chat.save();
     }
-    res.json(chat);
-  } catch (err) {
-    console.error(err);
+
+    res.status(200).json(chat);
+  } catch (error) {
+    console.error("Failed to fetch/create chat:", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 });
 
-module.exports = chatRouter;
+module.exports = router;
