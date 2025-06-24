@@ -17,12 +17,8 @@ const chatRouter = require("./routes/chat");
 
 const app = express();
 
-// ✅ Serve Uploaded Profile Pictures
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-require("./utils/cronjob");
-
-// ✅ Middleware
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -32,18 +28,15 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
-// ✅ Routes
 app.use("/", authRouter);
 app.use("/profile", profileRouter);
 app.use("/", requestRouter);
 app.use("/", userRouter);
 app.use("/", chatRouter);
 
-// ✅ Initialize Socket
 const server = http.createServer(app);
-initializeSocket(server);
+initializeSocket(server); // ✅ Socket initialized
 
-// ✅ Connect to DB and Start Server
 connectDB()
   .then(() => {
     console.log("✅ Database connection established...");
