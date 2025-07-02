@@ -1,6 +1,8 @@
 const { Server } = require("socket.io");
-const Chat = require("../models/Chat"); // ✅ Correct path to your Chat model
+const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
+const Chat = require("../models/Chat");
+const User = require("../models/user");
 
 let io;
 
@@ -14,59 +16,82 @@ const initializeSocket = (server) => {
     },
   });
 
-  io.on("connection", (socket) => {
-    console.log("🟢 [SOCKET] New client connected:", socket.id);
+  // ✅ Socket authentication middleware
+  io.use(async (socket, next) => {
+    try {
+      const token = socket.handshake.auth?.token;
+      if (!token) return next(new Error("❌ No auth token provided"));
+  
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  
+      // This is where it's failing:
+      const user = await User.findById(decoded._id);
+      if (!user) return next(new Error("❌ User not found"));
+  
+      socket.user = user;
+      next();
+    } catch (err) {
+      console.error("❌ Socket auth error:", err.message);
+      next(new Error("Authentication failed"));
+    }
+  });
+  
 
-    socket.on("joinChat", ({ userId, targetUserId, firstName }) => {
+  io.on("connection", (socket) => {
+    const userId = socket.user._id.toString();
+    console.log("🟢 [SOCKET] Client connected:", socket.id, "User:", userId);
+
+    // ✅ Join room
+    socket.on("joinChat", ({ targetUserId }) => {
       const roomId = [userId, targetUserId].sort().join("-");
       socket.join(roomId);
-      console.log(`👤 ${firstName} joined room ${roomId}`);
+      console.log(`👤 User ${userId} joined room ${roomId}`);
     });
 
-    socket.on("sendMessage", async (msg) => {
-      console.log("📨 Incoming msg:", msg);
-      const { userId, targetUserId, text } = msg;
+    // ✅ Handle incoming messages
+    socket.on("sendMessage", async ({ targetUserId, text }) => {
+      const senderId = socket.user._id.toString();
 
-      if (
-        !mongoose.Types.ObjectId.isValid(userId) ||
-        !mongoose.Types.ObjectId.isValid(targetUserId)
-      ) {
-        console.error("❌ Invalid userId or targetUserId:", userId, targetUserId);
+      if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+        console.error("❌ Invalid targetUserId:", targetUserId);
         return;
       }
 
-      const roomId = [userId, targetUserId].sort().join("-");
-      console.log(`📤 Message sent to room ${roomId}: ${text}`);
+      const roomId = [senderId, targetUserId].sort().join("-");
+      console.log(`📤 [${roomId}] ${senderId} ➤ ${targetUserId}: ${text}`);
 
       try {
         let chat = await Chat.findOne({
-          participants: { $all: [userId, targetUserId] },
+          participants: { $all: [senderId, targetUserId] },
         });
 
         if (!chat) {
           chat = new Chat({
-            participants: [userId, targetUserId],
+            participants: [senderId, targetUserId],
             messages: [],
           });
         }
 
-        chat.messages.push({
-          senderId: userId,
+        const newMessage = {
+          senderId,
           text,
-        });
+        };
 
+        chat.messages.push(newMessage);
         await chat.save();
+
         console.log("💾 Message saved to DB");
+
+        io.to(roomId).emit("messageReceived", {
+          ...newMessage,
+          targetUserId,
+        });
       } catch (err) {
         console.error("❌ Error saving message:", err.message);
       }
-
-      io.to(roomId).emit("messageReceived", {
-        ...msg,
-        senderId: userId, // ensure recipient knows who sent it
-      });
     });
 
+    // ✅ Handle disconnect
     socket.on("disconnect", () => {
       console.log("🔴 [SOCKET] Client disconnected:", socket.id);
     });

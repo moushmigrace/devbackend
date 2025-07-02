@@ -7,7 +7,7 @@ const profileRouter = express.Router();
 const { userAuth } = require("../middlewares/auth");
 const ConnectionRequest = require("../models/connectionRequest");
 
-// Ensure upload directory exists
+
 const uploadPath = path.join(__dirname, "../uploads");
 if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath);
 
@@ -21,7 +21,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// 🔥 PATCH /profile/edit
+
 profileRouter.patch("/edit", userAuth, upload.single("photo"), async (req, res) => {
   try {
     const fields = ["firstName", "lastName", "age", "gender", "about", "skills"];
@@ -49,7 +49,7 @@ profileRouter.patch("/edit", userAuth, upload.single("photo"), async (req, res) 
 });
 
 
-// ✅ Delete Sent Request
+
 profileRouter.delete("/request/delete/:toUserId", userAuth, async (req, res) => {
   try {
     const request = await ConnectionRequest.findOneAndDelete({

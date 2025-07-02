@@ -1,11 +1,11 @@
 const express = require("express");
 const profileRouter = express.Router();
 
-const { userAuth } = require("../middlewares/auth");
+const { userAuth } = require("../middlewares/auth");//import function
 const { validateEditProfileData } = require("../utils/validation");
-const ConnectionRequest = require("../models/connectionRequest"); // ✅ Required import
+const ConnectionRequest = require("../models/connectionRequest"); //import model
 
-// View profile
+
 profileRouter.get("/profile/view", userAuth, async (req, res) => {
   try {
     const user = req.user;
@@ -15,7 +15,7 @@ profileRouter.get("/profile/view", userAuth, async (req, res) => {
   }
 });
 
-// Send request (⚠️ this should be in request.js ideally, but okay here for now)
+
 profileRouter.post("/request/send/:toUserId", userAuth, async (req, res) => {
   const fromUserId = req.user._id;
   const { toUserId } = req.params;
@@ -43,27 +43,6 @@ profileRouter.post("/request/send/:toUserId", userAuth, async (req, res) => {
   }
 });
 
-// Edit profile
-profileRouter.patch("/profile/edit", userAuth, async (req, res) => {
-  try {
-    if (!validateEditProfileData(req)) {
-      throw new Error("Invalid Edit Request");
-    }
-
-    const loggedInUser = req.user;
-
-    Object.keys(req.body).forEach((key) => (loggedInUser[key] = req.body[key]));
-
-    await loggedInUser.save();
-
-    res.json({
-      message: `${loggedInUser.firstName}, your profile updated successfully`,
-      data: loggedInUser,
-    });
-  } catch (err) {
-    res.status(400).send("ERROR : " + err.message);
-  }
-});
 
 profileRouter.patch("/request/accept/:fromUserId", userAuth, async (req, res) => {
   try {
@@ -86,7 +65,7 @@ profileRouter.patch("/request/accept/:fromUserId", userAuth, async (req, res) =>
 });
 
 
-// DELETE: Cancel a sent request
+
 profileRouter.delete("/request/delete/:toUserId", userAuth, async (req, res) => {
   try {
     const request = await ConnectionRequest.findOneAndDelete({
@@ -108,4 +87,4 @@ profileRouter.delete("/request/delete/:toUserId", userAuth, async (req, res) => 
 
 
 
-module.exports = profileRouter; // ✅ Correct export
+module.exports = profileRouter; 

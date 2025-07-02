@@ -78,15 +78,20 @@ const userSchema = new mongoose.Schema(
 );
 
 // Generate JWT token
-userSchema.methods.getJWT = async function () {
+
+
+userSchema.methods.getJWT = function () {
   const user = this;
 
-  const token = await jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
-    expiresIn: "7d",
-  });
+  const token = jwt.sign(
+    { _id: user._id },               // ✅ payload
+    process.env.JWT_SECRET,         // ✅ secret ("hello" in your .env)
+    { expiresIn: "7d" }             // ✅ token duration
+  );
 
   return token;
 };
+
 
 // Validate user-entered password against hashed one
 userSchema.methods.validatePassword = async function (passwordInputByUser) {
@@ -101,4 +106,5 @@ userSchema.methods.validatePassword = async function (passwordInputByUser) {
   return isPasswordValid;
 };
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = mongoose.models.User || mongoose.model("User", userSchema);
+
