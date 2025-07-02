@@ -17,13 +17,12 @@ chatRouter.get("/chat/:id", userAuth, async (req, res) => {
       return res.status(200).json({ messages: [], participants: [userId, targetUserId] });
     }
 
-    res.status(200).json(chat);
+    return res.status(200).json(chat);
   } catch (err) {
     console.error("❌ Failed to fetch chat:", err);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 });
-
 // New route to post a message
 chatRouter.post("/chat", userAuth, async (req, res) => {
   try {
